@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>黑马旅游-用户管理</title>
+	<link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+	<link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css">
+	<link rel="stylesheet" href="css/system.css">
+	<script src="assets/jquery/jquery.min.js"></script>
+	<script src="assets/bootstrap/js/bootstrap.min.js"></script>
+	<script src="js/common.js"></script>
+	 <script type="text/javascript">
+			var i = 15;
+			var res;
+			function jump(){
+				document.getElementById("time").innerHTML = "<font color='red'>" + i + "</font>";
+				i -= 1;
+				res = setTimeout("jump()", 1000);
+				if(i < 0){
+					$("#mes1").hide();
+					$("#submit").addClass("btn-danger");
+					$("#submit").click(function(){
+						forbide();
+					});
+				}
+			}
+		</script>
+	
+	<script type="text/javascript">
+	$(function(){							//检测是否有用户登录
+		$.ajax({
+			type:"GET",
+			url:"../admin",
+			data:{method:"loginStatus"},
+			dataType:"json",
+			success:function(ResultInfo){
+				if(ResultInfo.flag){
+					if(ResultInfo.data!=null){  	//有账户已经登陆
+						$("#name").html(ResultInfo.data.sname);
+					}else{		
+						alert("请先登录!")
+						window.location.href="login.html";//直接访问后台网站，没登陆的情况
+					}
+				}else{								//服务器炸裂
+				}
+			}
+		})
+	});	
+	function out(){					//登出弹出预警框
+		$("#myModal3").modal();
+	}
+	function logout(){				//登出
+		$("#myModal3").modal('hide');
+		$.ajax({
+			type:"GET",
+			url:"../admin",
+			data:{method:"logout"},
+			dataType:"json",
+			success:function(ResultInfo){
+				if(ResultInfo.flag){
+					alert("登出成功!")
+					window.location.href="login.html";
+				}else{
+					alert("服务器错误!")
+					window.location.href="login.html";
+				}
+			}
+		})
+	}
+	</script>
+ <script type="text/javascript">
+ 	function flush(){
+		$.ajax({
+			type:"GET",
+			url:"../admin",			
+			data:{method:"findUser"},
+			dataType:"json",
+			success:function(ResultInfo){
+				if(ResultInfo.flag){
+					html='<tr>'+
+	        			'<th>姓名</th>'+
+	        			'<th>生日</th>'+
+	        			'<th>性别</th>'+
+	        			'<th>电话</th>'+
+	        			'<th>操作</th>'+
+	        		'</tr>';
+	        		var users=ResultInfo.data;
+					for(user of users){
+						if(user.username!=null){
+							html+=	'<tr>'+
+				        			'<td>'+user.name+'</td>'+
+				        			'<td>'+user.birthday+'</td>'+
+				        			'<td>'+user.sex+'</td>'+
+				        			'<td>'+user.telephone+'</td>'+
+				        			'<td>'+
+				        				'<button type="button" class="btn btn-danger" onclick="tparameter(\''+user.uid+'\',this)" >禁用</button>'+
+				        			'</td>'+
+				        		'</tr>';
+						}else{
+							html+=	'<tr style="background-color: lightgray;">'+
+				        			'<td>'+user.name+'</td>'+
+				        			'<td>'+user.birthday+'</td>'+
+				        			'<td>'+user.sex+'</td>'+
+				        			'<td>'+user.telephone+'</td>'+
+				        			'<td>'+
+				        				'<button type="button" class="btn already" onclick="tparameter(\''+user.uid+'\',this)" >禁用</button>'+
+				        			'</td>'+
+				        		'</tr>';
+						}
+					}
+					$("#showUser").html(html);
+				}else{
+					
+				}
+			}
+		})
+
+ 	}
+		$(function(){			//查询用户信息
+			flush();
+		})
+	</script> 
+	<script type="text/javascript">
+	function tparameter(uid,obj){
+		if(obj.className=="btn already"){
+			
+		}else{
+			$("#uid").val(uid);
+			$("#myModal4").modal();
+			$("#mes1").show();
+			var a=jump();
+		}
+	}
+	function forbide(){
+		var uid=$("#uid").val();
+		$.ajax({
+			type:"GET",
+			url:"../admin",			
+			data:{method:"forbideUser",uid:uid},
+			dataType:"json",
+			success:function(ResultInfo){
+				if(ResultInfo.flag){
+					$("#myModal4").modal('hide');
+					flush();
+				}else{
+					$("#myModal4").modal('hide');
+					flush();
+				}
+			}
+		})
+	}
+	</script>
+	
+</head>
+<body>
+	<div class="system">
+		<div class="aside">
+			<div class="profile">
+				<div class="avatar img-circle">
+					<img src="images/my_logo.jpg">
+				</div>
+				<h4 id="name">张学友</h4>
+			</div>
+			<div class="navs">
+				<ul class="list-unstyled">
+					<li class="active">
+						<a href="user.html">
+							<i class="fa fa-user"></i>
+							用户管理
+						</a>
+					</li>
+					<li>
+						<a href="category-first.html">
+							<i class="fa fa-user"></i>
+							分类管理
+						</a>
+					</li>
+					<li>
+						<a href="product.html?curPage=1">
+							<i class="fa fa-product-hunt"></i>
+							商品管理
+						</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div class="main">
+			<div class="header">
+	            <nav class="navbar navbar-custom">
+	                <div class="navbar-header">
+	                    <a href="javascript:;" class="navbar-brand">
+	                        <i class="fa fa-navicon"></i>
+	                    </a>
+	                </div>
+	                <ul class="nav navbar-nav navbar-right">
+	                    <li>
+	                        <a href="javascript:;" class="login_out_bot" onclick="out()">
+	                            <i class="fa fa-sign-out"></i> 退出
+	                        </a>
+	                    </li>
+	                </ul>
+	            </nav>
+	        </div>
+	        <div class="body">
+	        	<table class="table table-bordered" id="showUser">
+	        		<tr>
+	        			<th>姓名</th>
+	        			<th>生日</th>
+	        			<th>性别</th>
+	        			<th>电话</th>
+	        			<th>操作</th>
+	        		</tr>
+	        		<tr >
+	        			<td>杰克</td>
+	        			<td>2018-07-04</td>
+	        			<td>男</td>
+	        			<td>131452011</td>
+	        			<td>
+	        				<button type="button" class="btn btn-danger" >禁用</button>
+	        			</td>
+	        		</tr>
+	        	</table>
+	        </div>
+		</div>
+	</div>
+<div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" id="myModal3">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+    <div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"><span>×</span></button>
+					<h3 class="modal-title" id="myLargeModalLabel1">操作提示</h3>
+	</div>
+	<h5 >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;确认要退出登录么?</h5>
+     	<div class="modal-footer">
+			<button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+			<button type="button" class="btn btn-danger" onclick="logout()">确定</button>
+		</div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" id="myModal4">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+    <input type="hidden" name="uid" id="uid">
+    <div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"><span>×</span></button>
+					<h3 class="modal-title" id="myLargeModalLabel1">操作提示</h3>
+	</div>
+		<h5 id="mes">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;此操作不可逆,确认要禁用此用户么?<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font id="mes1"><font id="time">15</font>秒后可以删除?</font></h5>
+     	<div class="modal-footer">
+			<button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+			<button type="button" class="btn btn-already" id="submit">确定</button>
+		</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

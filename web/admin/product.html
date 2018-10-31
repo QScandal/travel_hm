@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>黑马旅游-商品管理</title>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/system.css">
+    <script src="assets/jquery/jquery.min.js"></script>
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="js/common.js"></script>
+    <script type="text/javascript" src="../js/getParameter.js"></script>
+
+    <script type="text/javascript">
+        $(function () { //检测是否有用户登录
+            $.ajax({
+                type: "GET",
+                url: "../admin",
+                data: {method: "loginStatus"},
+                dataType: "json",
+                success: function (ResultInfo) {
+                    if (ResultInfo.flag) {
+                        if (ResultInfo.data != null) {  	//有账户已经登陆
+                            $("#name").html(ResultInfo.data.sname);
+                        } else {
+                            alert("请先登录!")
+                            window.location.href = "login.html";//直接访问后台网站，没登陆的情况
+                        }
+                    } else {								//服务器炸裂
+                    }
+                }
+            })
+        });
+
+        function out() {					//登出弹出预警框
+            $("#myModal3").modal();
+        }
+
+        function logout() {				//登出
+            $("#myModal3").modal('hide');
+            $.ajax({
+                type: "GET",
+                url: "../admin",
+                data: {method: "logout"},
+                dataType: "json",
+                success: function (ResultInfo) {
+                    if (ResultInfo.flag) {
+                        alert("登出成功!")
+                        window.location.href = "login.html";
+                    } else {
+                        alert("服务器错误!")
+                        window.location.href = "login.html";
+                    }
+                }
+            })
+        }
+
+/*========================================================================================================*/
+
+        $(function () {
+            var sid = 1;
+            var curPage= getParameter("curPage");
+            //alert(sid);
+
+
+            $.post(
+                    "../route",
+                    //findRouteListBySid根据商家的id获取旅游路线Route表中的数据
+                    {method: "findRouteListBySid", sid: sid, curPage: curPage/*, rname: rname*/},
+                    //resultInfo中的data属性存储的是一个pageBean对象,pageBean对象中data属性存储的是一个Route类型的list
+                    function (resultInfo) {
+                        if (resultInfo.flag) {
+                            var pageBean = resultInfo.data;
+                            var dataList = pageBean.data;
+                            var html = "";
+                            html +="<tr>\n" +
+                                    "                    <th>编号</th><!-- rid -->\n" +
+                                    "                    <th width=\"20%\">名称</th><!-- rname -->\n" +
+                                    "                    <th width=\"16%\">描述</th><!-- price -->\n" +
+                                    "                    <th>图片</th><!-- rimage-->\n" +
+                                    "                    <th>价格</th><!-- routeIntroduce-->\n" +
+                                    "                    <th>是否上架</th><!-- routeIntroduce-->\n" +
+                                    "                    <th>上架日期</th><!-- rdate-->\n" +
+                                    "                    <th>主题</th><!-- isThemeTour-->\n" +
+                                    "                    <th>收藏量</th><!-- count-->\n" +
+                                    "                    <th>分类</th><!-- category.cname-->\n" +
+                                    "                    <th>操作</th>\n" +
+                                    "                </tr>";
+                            for (route of dataList) {
+                                var shangjia;
+                                if(route.rflag==1){
+                                    shangjia="上架";
+                                }else{
+                                    shangjia="未上架";
+                                }
+                                var fenlei;
+                                if(route.cid==5){
+                                    fenlei="国内游";
+                                }else{
+
+                                }
+
+                                var zhuti;
+                                if(route.isThemeTour==0){
+                                    zhuti="否";
+                                }else{
+                                    zhuti="是";
+                                }
+
+                                //alert(route.rid);
+                                html += "<tr>\n" +
+                                        "                    <td>"+route.rid+"</td>\n" +
+                                        "                    <td width=\"20%\">"+route.rname+"</td>\n" +
+                                        "                    <td width=\"16%\">"+route.routeIntroduce+"</td>\n" +
+
+                                        "                    <td><img width="+100+" height="+70+" src=\"../"+route.rimage+"\" alt=\"\"></td>\n" +
+                                        "                    <td>"+route.price+"</td>\n" +
+                                        "                    <td>"+shangjia+"</td>\n" +
+                                        "                    <td>"+route.rdate+"</td>\n" +
+                                        "                    <td>"+zhuti+"</td>\n" +
+                                        "                    <td>"+route.count+"</td>\n" +
+                                        "                    <td>"+fenlei+"</td>\n" +
+                                        "                    <td>\n" +
+                                        "                        <button type=\"button\" class=\"btn btn-danger\">下架</button>\n" +
+                                        "                    </td>\n" +
+                                        "\n" +
+                                        "\n" +
+                                        "                </tr>";
+                                //alert(route.rname);
+
+                            }
+                            //alert(route.rname);
+                            //更新页面,选择器
+                            $(".table").html(html);
+                            // alert(route.rname);
+
+
+                            /*=================================================分页==========================================================*/
+                            //更新分页信息
+                            var html = "";
+                            //拼接首页
+                            html+="<li><a href=\"product.html?sid="+sid+"&curPage="+pageBean.firstPage+"\">首页</a></li>";
+                            //拼接上一页
+                            if(pageBean.curPage>1){
+                                html+="<li class=\"threeword\"><a href=\"product.html?sid="+sid+
+                                        "&curPage="+pageBean.prePage+"\">上一页</a></li>";
+                            }
+                            //定义起始页和结束页
+                            var begin,end;
+                            if(pageBean.totalPage<=10){
+                                begin =1;
+                                end = pageBean.totalPage;
+                            }else{
+                                begin = pageBean.curPage-5;
+                                end = pageBean.curPage+4;
+                                // 头溢出,begin<1
+                                if(begin<1){
+                                    begin = 1;
+                                    end = begin+9;
+                                }
+                                // 尾溢出,end>totalPage
+                                if(end>pageBean.totalPage){
+                                    end = pageBean.totalPage;
+                                    begin = end-9;
+                                }
+                            }
+                            //每页数字
+                            for(var i=begin;i<=end;i++){
+                                if(i==pageBean.curPage){
+                                    html+="<li class=\"active\"><a href=\"product.html?sid="+sid+
+                                            "&curPage="+i+"\">"+i+"</a></li>";
+                                }else{
+                                    html+="<li><a href=\"product.html?sid="+sid+"&curPage="+i+"\">"+i+"</a></li>";
+                                }
+                            }
+                            //拼接下一页
+                            if(pageBean.curPage<pageBean.totalPage){
+                                html+="<li class=\"threeword\"><a href=\"product.html?sid="+sid+
+                                        "&curPage="+pageBean.nextPage+"\">下一页</a></li>";
+                            }
+                            //拼接末页
+                            html+=" <li class=\"threeword\"><a href=\"product.html?sid="+sid+
+                                    "&curPage="+pageBean.totalPage+"\">末页</a></li>";
+                            //更新
+                            $(".pageNum ul").html(html);
+                            //更新总页数
+                            $(".page_num_inf span:eq(0)").html(pageBean.totalPage);
+                            //更新总记录数
+                            $(".page_num_inf span:eq(1)").html(pageBean.count);
+                            /*=================================================分页==========================================================*/
+
+                        }else{
+                            alert(resultInfo.errorMsg);
+                        }
+                    },
+                    "json"
+            );
+        });
+
+        /*==============================================添加商品===============================================================*/
+
+        //页面加载事件
+        $(function () {
+            //异步发送请求获取国内游分页数据
+            //alert(111);
+            //alert(111111);
+            $.post(
+                    "../category",
+                    {method: "findAllCategory"},
+                    //resultInfo保存的是datalist字符串
+                    function (resultInfo) {
+                        //alert(222);
+                        if (resultInfo && resultInfo.length > 0) {
+                            //正常获取数据
+
+                            //var dataList = resultInfo.data;
+                            var html = "";
+                            html += "<option>-- 请选择旅游路线类别 --</option>";
+                            for (cate of resultInfo) {
+                                html += "<option>" + cate.cname + "</option>";
+                            }
+                            //更新页面
+                            $("#select-option-cid").html(html);
+                        }else{
+                            alert(resultInfo.errorMsg);
+                        }
+                    },
+                    "json"
+            );
+
+        });
+
+        function saveRoute(){
+            var cname=$("#select-option-cid").val();
+            var rname = $("#rname").val();//路线的rname
+            var routeIntroduce = $("#routeIntroduce").val();//路线简介
+            var price = $("#price").val();//价格
+            var isThemeTour = $("#select-option-isThemeTour").val();//主题游
+            var rimage = $("#rimage").val();
+            //alert(rimage);
+
+            //var rimage = "img/product/small/m3a0b210f47a778170efe260bd75a2fd01.jpg";
+
+            $.ajax({
+                type:"GET",
+                url:"../route",
+                data:{method:"addRoute",cname:cname,rname:rname,routeIntroduce:routeIntroduce,price:price,isThemeTour:isThemeTour,rimage:rimage},
+                contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+                dataType:"json",
+                success:function(resultInfo){
+
+                   // alert(resultInfo.flag);
+
+                    if (resultInfo.flag) {
+                        $('#adddialog').modal('hide');
+                        $('#cname').val(null);
+                        $("#select-option-cid").val(null);
+                        $("#rname").val(null);//路线的rname
+                        $("#routeIntroduce").val(null);//路线简介
+                        $("#price").val(null);//价格
+                        $("#select-option-isThemeTour").val(null);//主题游
+                        //var a=shuaxin();
+                        location.href = "/travelTest/admin/product.html";
+                    } else {
+                        alert(resultInfo.errorMsg);
+                    }
+                }
+
+            });
+        }
+        /*==============================================添加商品===============================================================*/
+
+ /*========================================================================================================*/
+
+
+    </script>
+
+
+</head>
+<body>
+<div class="system">
+    <div class="aside">
+        <div class="profile">
+            <div class="avatar img-circle">
+                <img src="images/my_logo.jpg">
+            </div>
+            <h4 id="name"></h4>
+        </div>
+        <div class="navs">
+            <ul class="list-unstyled">
+                <li>
+                    <a href="user.html">
+                        <i class="fa fa-user"></i>
+                        用户管理
+                    </a>
+                </li>
+                <li>
+                    <a href="category-first.html">
+                        <i class="fa fa-bars"></i>
+                        分类管理
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                   <!-- <ul class="list-unstyled">
+                        <li>
+                            <a href="category-first.html">一级分类管理</a>
+                        </li>
+                        <li>
+                            <a href="category-second.html">二级分类管理</a>
+                        </li>
+                    </ul>-->
+                </li>
+                <li class="active">
+                    <a href="product.html">
+                        <i class="fa fa-product-hunt"></i>
+                        商品管理
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="main">
+        <div class="header">
+            <nav class="navbar navbar-custom">
+                <div class="navbar-header">
+                    <a href="javascript:;" class="navbar-brand">
+                        <i class="fa fa-navicon"></i>
+                    </a>
+                </div>
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="javascript:;" class="login_out_bot" onclick="out()">
+                            <i class="fa fa-sign-out"></i> 退出
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+
+        <!-- =================================================商品的展示=================================================== -->
+        <div class="body">
+            <button class="operation btn btn-primary" data-toggle="modal" data-target=".bs-example-modal-lg">添加商品
+            </button>
+            <table class="table table-bordered">
+
+            </table>
+            <!-- ========================================分页========================================= -->
+            <div align="right" class="page_num_inf">
+                <i></i> 共
+                <span>12</span>页<span>132</span>条
+            </div>
+            <div class="pageNum" align="center">
+                <ul class="pagination">
+                    <li><a href="">首页</a></li>
+                    <li class="threeword"><a href="#">上一页</a></li>
+                    <li class="curPage"><a href="#">1</a></li>
+                    <li><a href="#">2</a></li>
+                    <li><a href="#">3</a></li>
+                    <li><a href="#">4</a></li>
+                    <li><a href="#">5</a></li>
+                    <li><a href="#">6</a></li>
+                    <li><a href="#">7</a></li>
+                    <li><a href="#">8</a></li>
+                    <li><a href="#">9</a></li>
+                    <li><a href="#">10</a></li>
+                    <li class="threeword"><a href="javascript:;">下一页</a></li>
+                    <li class="threeword"><a href="javascript:;">末页</a></li>
+                </ul>
+            </div>
+            <!-- ========================================分页========================================= -->
+
+
+        </div>
+    </div>
+</div>
+<!-- ==========================================商品的展示=================================================== -->
+
+
+=<!-- =========================================商品的添加=================================================== -->
+<div class="modal fade bs-example-modal-lg" id="adddialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>×</span></button>
+                <h4 class="modal-title" id="myLargeModalLabel">添加商品</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <select class="form-control" id="select-option-cid">
+                        <!--  <option>-- 请选择旅游路线类别 --</option>  -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="rname" placeholder="请输入产品名称">
+                </div>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="routeIntroduce" placeholder="请输入产品描述">
+                </div>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="price" placeholder="请输入产品价格">
+                </div>
+                <div class="form-group">
+                    <select class="form-control" id="select-option-isThemeTour">
+                        <option>-- 是否为主题旅游产品:1为是, 0为否 --</option>
+                        <option>1</option>
+                        <option>0</option>
+                    </select>
+                </div>
+
+                <!--文件上传 -->
+                <div class="form-group">
+                    <input type="file" id="rimage" accept="image/jpeg" multiple>
+                    <p class="help-block">最多上传三张图片</p>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+
+                <!-- 点击添加按钮后,跳出显示添加成功 -->
+                <button type="button" onclick="saveRoute()" class="btn btn-primary" id="addProduct">添加</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ==============================================商品的添加=================================================== -->
+<div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel"
+     id="myModal3">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <input type="hidden" name="cid" id="cid3">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>×</span></button>
+                <h3 class="modal-title" id="myLargeModalLabel1">操作提示</h3>
+            </div>
+            <h5>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;确认要退出登录么?</h5>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="logout()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

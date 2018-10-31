@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans>
+   <bean id="RouteDao" class="com.itheima.dao.impl.RouteDaoImpl"/>
+   <bean id="FindService" class="com.itheima.service.impl.FindServiceImpl"/>
+   <bean id="FindDao" class="com.itheima.dao.impl.FindDaoImpl"/>
+   <bean id="CategoryDao" class="com.itheima.dao.impl.CategoryDaoImpl"/>
+   <bean id="RouteService" class="com.itheima.service.impl.RouteServiceImpl"/>
+   <bean id="CategoryService" class="com.itheima.service.impl.CategoryServiceImpl"/>
+   <bean class="com.itheima.dao.impl.FavoriteDaoImpl" id="FavoriteDao"/>
+   <bean class="com.itheima.service.impl.FavoriteServiceImpl" id="FavoriteService"/>
+   <!-- 吕灵俊 -->
+   <bean class="com.itheima.dao.impl.Daoimpl" id="Daoimpl"/>
+   <bean class="com.itheima.service.impl.ServiceImpl" id="serviceimpl"/>
+   
+    <!-- 小刚 -->
+   <bean id="UserDao" class="com.itheima.dao.impl.UserDaoImpl"/>
+   <bean id="UserService" class="com.itheima.service.impl.UserServiceImpl"/>
+   
+   <!-- 刘大哥-->
+   <bean id="Tab_UserService" class="com.itheima.service.impl.Tab_UserServiceImpl"/>
+   <bean id="Tab_UserDao" class="com.itheima.dao.impl.Tab_UserDaoImpl"/>
+   
+</beans>

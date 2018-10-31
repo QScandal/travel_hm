@@ -1,0 +1,273 @@
+<script src="js/jquery-3.3.1.js"></script>
+<style type="text/css">
+    #searchResult li:hover{
+        background-color: #ccc;
+    }
+
+    #searchResult li {
+        font-size:15px;
+        font-family:"NSimSun";
+        text-overflow:ellipsis;
+    }
+</style>
+<script type="text/javascript">
+    //页面加载时获取登录的用户数据
+    $(function () {
+        $(".login").hide();//登录信息隐藏
+        //请求servlet，获取登录用户数据
+
+        $.post(
+            "userServlet",
+            {method:"getLoginUserData"},//请求方法
+            function (resultInfo) {
+                if(resultInfo.flag){
+                    //已登录
+                    $(".login_out").hide();//没有登录信息隐藏
+                    $(".login").html(" <span>欢迎回来，"+resultInfo.data.name+"</span>\n" +
+                        "                <a href=\"myfavorite.html\" class=\"collection\">我的收藏</a>\n" +
+                        "                <a href=\"userServlet?method=logout\">退出</a>").show();
+                }else{
+                    //未登录
+                    $(".login_out").show();//没有登录信息显示
+                    $(".login").hide();//登录信息隐藏
+                }
+            },
+            "json"
+        );
+    });
+
+</script>
+<!-- 头部 start -->
+    <header id="header">
+        <div class="top_banner">
+            <img src="images/top_banner.jpg" alt="">
+        </div>
+        <div class="shortcut">
+            <!-- 未登录状态  -->
+            <div class="login_out">
+                <a href="login.html">登录</a>
+                <a href="register.html">注册</a>
+            </div>
+            <!-- 登录状态  -->
+            <div class="login">
+            	
+                <span>欢迎回来，admin</span>
+                <a href="myfavorite.html" class="collection">我的收藏</a>
+                <a href="javascript:void(0);">退出</a>
+            </div>
+        </div>
+        <div class="header_wrap">
+            <div class="topbar">
+                <div class="logo">
+                    <a href="/"><img src="images/logo.jpg" alt=""></a>
+                </div>
+                <div class="search">
+                    <input name="content" id="content" type="text"
+
+                           onmousedown="historyKeyWordsShow(this)"
+                           onkeyup="selectKeyWords(this)" placeholder="请输入路线名称"
+                           class="search_input" autocomplete="off" style="font-size:100%">
+
+                    <a  href="javascript:search();" class="search-button">搜索</a>
+                    <!-- 精确查找 -->
+                    <div >
+                        <ul id="searchResult"   class="list-group" style="z-index:100;box-shadow: 0px 0px 10px 1px #aaa;top:232px;width:412px;border:1px solid #cccccc; position:absolute;display:table; background-color: white;cursor:pointer;">
+
+
+                        </ul>
+                    </div>
+
+
+                </div>
+                <div class="hottel">
+                    <div class="hot_pic">
+                        <img src="images/hot_tel.jpg" alt="">
+                    </div>
+                    <div class="hot_tel">
+                        <p class="hot_time">客服热线(9:00-6:00)</p>
+                        <p class="hot_num">400-618-9090</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- 头部 end -->
+    <script type="text/javascript" src="js/getParameter.js"></script>
+    <script type="text/javascript">
+        //加载事件
+        $(function () {
+
+            // 隐藏展示列表
+            $("#searchResult").hide();
+
+            //发出异步请求，获取分类列表数据
+            var url="category";
+            var data={method:"findAllCategory"};
+            var callback=function (resultInfo) {
+                if(resultInfo && resultInfo.length>0){
+                    //正常获取结果
+                    //拼接导航菜单
+                    var html = "<li class=\"nav-active\"><a href=\"index.html\">首页</a></li>";
+                    //循环分类列表数据，拼接每个导航菜单
+                    for(category of resultInfo){
+                        html+="<li><a href=\"route_list.html?cid="+category.cid+"\">"+category.cname+"</a></li>";
+                    }
+                    html+="<li><a href=\"favoriterank.html\">收藏排行榜</a></li>";
+                    //更新到具体位置
+                    $(".navitem .nav").html(html);
+                }else{
+                    //发生异常
+                    alert(resultInfo.errorMsg);
+                }
+            };
+            var type="json";
+            $.post(url,data,callback,type);
+
+
+            //获取url上的rname,更新到搜索输入框里面
+            var rname =decodeURI( getParameter("rname"));
+            if(rname && rname!="null"){
+                //更新页面上
+                $("#content").val(rname);
+            }
+        });
+
+
+        //搜索点击事件
+        function search(){
+            //获取url的cid
+           // var cid = getParameter("cid");
+            //获取搜索框文本值
+            var rname =$("#content").val();
+            //var keyWords = rname;
+            //请求route_list.html?cid=cid&rname=rname;
+            //location.href="route_list.html?cid=5&rname="+rname;
+            //"/travelTest/route?method=historyKeyWords&keyWords="+keyWords+"&index=1&cid=5"&rname="+rname;
+            location.href=location.href="route_list.html?cid=5&rname="+rname;
+        }
+
+//===============精确搜索==================================================================================
+        // 异步自动填充,键盘弹事件
+        function selectKeyWords(obj) {
+            //获取输入的关键字
+            var keyWords = obj.value.replace(/\s/gi,'');
+            if(keyWords!=null&&keyWords.length!=0){
+                //输入内容不为空,异步校验
+                $.post("route", {method:"selectKeyWords","keyWords":keyWords},function(data){
+                    if(data.length>0){
+                        $("#searchResult").html("");
+                        //遍历查询结果集
+                        var index = 0;
+                        $(data).each(function(index,ele){
+                            index = index + 1;
+                            //遍历字体截取重要部分
+                            var rname = ele.rname.substr(0,24)+"...";
+                            //title字段数据换行
+                            /* alert(ele.rname.length); */
+                            if(ele.rname.length<=50){
+                                var text = ele.rname.substr(0,30)+"&#10;"+ele.rname.substr(30)+"&#10;";
+                            }else{
+                                var text = ele.rname.substr(0,30)+"&#10;"+ele.rname.substr(30,50)+"&#10;"+ele.rname.substr(50);
+                            }
+                            //添加鼠标悬浮与离开事件<strong>"+index+":"+"</strong>"
+                            $("#searchResult").append("<li id='test' title='"+text+"'   onclick='selectText(this)' value='"+ele.rid+"'>"+rname+"</li>");
+                        });
+                        // 展示ul列表
+                        $("#searchResult").show();
+                    }else{
+                        $("#searchResult").hide();
+                    }
+                },"json");
+            }else{
+                $("#searchResult").hide();
+            }
+        }
+        // 将点击的li中的值放入搜索框中
+        function selectText(obj){
+            //获取value的值
+            var rid = $('#test').attr("value");
+
+            //如果rid的值为-1，则其为关键字，将其显示在文本框中
+            if(rid=="-1"){
+                //获取li标签的文本值
+                var str = obj.innerHTML;
+                //将li标签得文本值放入到输入框中
+                $("#content").val(str);
+
+                //ajax异步搜索文本中的关键字
+                $.post("route", {method:"selectKeyWords","keyWords":str},function(data){
+                    if(data.length>0){
+                        $("#searchResult").html("");
+                        //遍历查询结果集
+                        var index = 0;
+                        $(data).each(function(index,ele){
+                            index = index + 1;
+                            //遍历字体截取重要部分
+                            var rname = ele.rname.substr(0,24)+"...";
+                            //title字段数据换行
+                            /* alert(ele.rname.length); */
+                            if(ele.rname.length<=50){
+                                var text = ele.rname.substr(0,30)+"&#10;"+ele.rname.substr(30)+"&#10;";
+                            }else{
+                                var text = ele.rname.substr(0,30)+"&#10;"+ele.rname.substr(30,50)+"&#10;"+ele.rname.substr(50);
+                            }
+                            //添加鼠标悬浮与离开事件<strong>"+index+":"+"</strong>"
+                            $("#searchResult").append("<li id='test' title='"+text+"'   onclick='selectText(this)' value='"+ele.rid+"'>"+rname+"</li>");
+                        });
+                        // 展示ul列表
+                        $("#searchResult").show();
+                    }else{
+                        $("#searchResult").hide();
+                    }
+                },"json");
+                ////
+                return;
+            }
+
+            /*将用户输入的关键字存储到cookie中*/
+            //获取用户输入的关键字,去掉其中的空格
+            var keyWords = document.getElementById("content").value.replace(/\s/gi,'');
+            //将数据传送到servlet中存储到cookie中
+            if(keyWords!=null&keyWords.length!=0){
+
+                //如果输入的文本内容不为空，则存储至cookie，在转发至详情页面，
+                // 隐藏展示列表
+                $("#searchResult").hide();
+                //+"&index=0"
+                location.href="/travelTest/route?method=historyKeyWords&keyWords="+keyWords+"&rid="+rid;
+            }
+        }
+
+        //搜索框中获取历史搜索关键字记录
+        function historyKeyWordsShow(obj) {
+
+            //获取输入的关键字,如果关键字为空，则进行该事件
+            var keyWords = obj.value.replace(/\s/gi,'');
+            if(keyWords!=null&&keyWords.length!=0){
+                return;
+            }
+
+            //异步获取cookie的值
+            $.post("route", {method:"historyKeyWordsShow"},function(data){
+                /* alert(data); */
+                $("#searchResult").html("");
+                //截取字符串
+                var listWords = data.split("+");
+                for (var i = 0; i < listWords.length; i++) {
+                    /* alert(listWords[i]); */
+                    /* var word = "&nbsp;"+listWords[i]; */
+                    $("#searchResult").append("<li id='test' value='-1' onclick='selectText(this)' >"+listWords[i]+"</li>");
+                }
+                $("#searchResult").show();
+            },"text");
+        }
+
+
+    </script>
+     <!-- 首页导航 -->
+    <div class="navitem">
+        <ul class="nav">
+
+        </ul>
+    </div>
+    

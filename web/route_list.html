@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>黑马旅游-搜索</title>
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <link rel="stylesheet" href="css/search.css">
+    <script src="js/jquery-3.3.1.js"></script>
+    <script type="text/javascript" src="js/getParameter.js"></script>
+    <script type="text/javascript">
+        //页面加载事件
+        $(function () {
+           //获取传递过来国内游的cid
+            var cid = getParameter("cid");
+            //alert(cid);
+            //alert(cid);
+            //获取用户请求当前页
+            var curPage= getParameter("curPage");
+            //alert(curPage);
+            //获取搜索的rname,这里获取的是url编码的16进制数据,需要转码url解码
+            var rname =decodeURI(getParameter("rname"))=="null"?"":decodeURI(getParameter("rname")) ;
+            //异步发送请求获取国内游分页数据
+            //alert(rname);
+            $.post(
+                "route",
+                {method:"findRouteListByCid",cid:cid,curPage:curPage,rname:rname},
+
+                //resultInfo中的data中保存的是pageBean对象
+                function (resultInfo) {
+                    if(resultInfo.flag){
+                        //正常获取数据
+                        //获取当前页PageBean数据
+                        var pageBean = resultInfo.data;
+                        //获取当前页列表数据
+                        var dataList = pageBean.data;
+                        var html="";
+                        for(route of dataList){
+                            html+="<li>\n" +
+                                "                            <div class=\"img\"><img src=\""+route.rimage+"\" alt=\"\"></div>\n" +
+                                "                            <div class=\"text1\">\n" +
+                                "                                <p>"+route.rname+"</p>\n" +
+                                "                                <br/>\n" +
+                                "                                <p>"+route.routeIntroduce+"</p>\n" +
+                                "                            </div>\n" +
+                                "                            <div class=\"price\">\n" +
+                                "                                <p class=\"price_num\">\n" +
+                                "                                    <span>&yen;</span>\n" +
+                                "                                    <span>"+route.price+"</span>\n" +
+                                "                                    <span>起</span>\n" +
+                                "                                </p>\n" +
+                                "                                <p><a href=\"javascript:findRouteByRid("+route.rid+");\">查看详情</a></p>\n" +
+                                "                            </div>\n" +
+                                "                        </li>";
+
+                        }
+
+                        /*=====================朱昊=================*/
+                        if (html == ""){
+
+                           // alert("没有找到");
+                            getRoutesFavorite();        //若搜索没有结果，则去查询收藏排行榜
+                        } else{
+                            //更新页面
+                            $(".xinxi #leftId").html(html);
+                            //更新分页信息
+                            var html = "";
+                            //拼接首页
+                            html+="<li><a href=\"route_list.html?cid="+cid+"&curPage="+pageBean.firstPage+"\">首页</a></li>";
+                            //拼接上一页
+                            if(pageBean.curPage>1){
+                                html+="<li class=\"threeword\"><a href=\"route_list.html?cid="+cid+
+                                        "&curPage="+pageBean.prePage+"\">上一页</a></li>";
+                            }
+                            //定义起始页和结束页
+                            var begin,end;
+                            if(pageBean.totalPage<=10){
+                                begin =1;
+                                end = pageBean.totalPage;
+                            }else{
+                                begin = pageBean.curPage-5;
+                                end = pageBean.curPage+4;
+                                // 头溢出,begin<1
+                                if(begin<1){
+                                    begin = 1;
+                                    end = begin+9;
+                                }
+                                // 尾溢出,end>totalPage
+                                if(end>pageBean.totalPage){
+                                    end = pageBean.totalPage;
+                                    begin = end-9;
+                                }
+                            }
+                            //每页数字
+                            for(var i=begin;i<=end;i++){
+                                if(i==pageBean.curPage){
+                                    html+="<li class=\"curPage\"><a href=\"route_list.html?cid="+cid+
+                                            "&curPage="+i+"\">"+i+"</a></li>";
+                                }else{
+                                    html+="<li><a href=\"route_list.html?cid="+cid+"&curPage="+i+"\">"+i+"</a></li>";
+                                }
+                            }
+                            //拼接下一页
+                            if(pageBean.curPage<pageBean.totalPage){
+                                html+="<li class=\"threeword\"><a href=\"route_list.html?cid="+cid+
+                                        "&curPage="+pageBean.nextPage+"\">下一页</a></li>";
+                            }
+                            //拼接末页
+                            html+=" <li class=\"threeword\"><a href=\"route_list.html?cid="+cid+
+                                    "&curPage="+pageBean.totalPage+"\">末页</a></li>";
+                            //更新
+                            $(".pageNum ul").html(html);
+                            //更新总页数
+                            $(".page_num_inf span:eq(0)").html(pageBean.totalPage);
+                            //更新总记录数
+                            $(".page_num_inf span:eq(1)").html(pageBean.count);
+                        }
+
+                        /*=====================朱昊=================*/
+
+
+                    }else{
+                        alert(resultInfo.errorMsg);
+                    }
+                },
+                "json"
+            );
+
+        });
+
+
+        /*=====================朱昊=================*/
+        /*========================若搜索没有结果，则去查询收藏排行榜============================================================================*/
+        function  getRoutesFavorite() {
+            var url = "favorite";//访问favoriteServlet
+            //获取分页获取请求传递的curPage
+            var curPage = getParameter("curPage");
+            var number = Math.random();
+            number = Math.ceil(number * 63)+1;
+            //提交参数数据
+            var data = {
+                method: "findRoutesFavoriteRank",//请求类型
+                curPage: number,//设置查询参数为第一页的前几个
+                //多条件搜索参数数据
+                rname: "",
+                startPrice: "",
+                endPrice: ""
+            };
+            //异步请求回调函数
+            //resultInfo中data存储的是: pageBean
+            //pageBean中存储的是routelist
+
+            var callback = function (resultInfo) {
+                //判断返回结果有效性
+                if (resultInfo.flag) {
+                    //resultInfo.flag为true代表正确获得了返回结果
+                    //获取pageBean对象数据
+                    var pageBean = resultInfo.data;
+                    //遍历当前页数据列表添加到列表位置
+                    var dataList = pageBean.data;
+                    var html = "";
+                    $(".pageNum ul").html(html);
+                    $(".page_num_inf").html(html);
+                    $(".xinxi #aaaa").html(html);
+                    $(".xinxi #leftId").html(html);
+                    html += "\n<br>" +
+                            "<span style=\'color: #2aabd2\'>抱歉，没有找到相关的结果</span>\n<br>" +
+                            "\n<br>" +
+                            "建议您：\n<br>" +
+                            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1. 检查输入的文字是否有误\n<br>" +
+                            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2. 请尽量使用简洁的关键字\n<br>" +
+                            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3. 以下给您推荐几个热门收藏&nbsp;&downdownarrows;&downdownarrows;&downdownarrows;&downdownarrows;<br>"+
+                            "<hr>";
+                    html+="<a href = \"javascript:getRoutesFavorite()\"><img src=\"images/flush.JPG\" style=\'cursor: pointer\'></a>";  //不喜欢可以换一批
+                    var countaa=0;
+                    for (route of dataList) {
+
+                        countaa=countaa+1;
+                        if (countaa>3){
+                            break;
+                        }
+                        html += "<li>\n" +
+                                "                            <div class=\"img\"><img src=\"" + route.rimage + "\" alt=\"\"></div>\n" +
+                                "                            <div class=\"text1\">\n" +
+                                "                                <p>" + route.rname + "</p>\n" +
+                                "                                <br/>\n" +
+                                "                                <p>" + route.routeIntroduce + "</p>\n" +
+                                "                            </div>\n" +
+                                "                            <div class=\"price\">\n" +
+                                "                                <p class=\"price_num\">\n" +
+                                "                                    <span>&yen;</span>\n" +
+                                "                                    <span>" + route.price + "</span>\n" +
+                                "                                    <span>起</span>\n" +
+                                "                                </p>\n" +
+                                "                                <p><a href=\"javascript:findRouteByRid(" + route.rid + ");\">查看详情</a></p>\n" +
+                                "                            </div>\n" +
+                                "                        </li>";
+
+                    }
+                    $(".xinxi #leftId").html(html);
+                    //alert("没有找到");
+                }else{
+                    alert("服务器正忙，请稍后再试。。。");
+                }
+            };
+            var type ="json";//返回数据类型
+            //发送请求
+            $.post(url,data,callback,type);
+        }
+
+        /*=====================朱昊=================*/
+
+
+/*=======================================返回历史记录============================================================================*/
+        //页面加载事件
+        $(function () {
+            //异步发送请求获取国内游分页数据
+            $.post(
+                    "route",
+                    {method:"findHistoryRoutList"},
+
+                    //resultInfo中的data中保存的是datalist对象  list<route>
+                    function (resultInfo) {
+                        if(resultInfo.flag){
+                            //正常获取数据
+
+                            var dataList = resultInfo.data;
+                            var html="";
+                            for(route of dataList){
+                                html+="<li>\n" +
+                                        "                            <div class=\"left\"><img src=\""+route.routeImgList[0].smallPic+"\" alt=\"\"></div>\n" +
+                                        "                            <div class=\"right\">\n" +
+                                        "                                <p><a href=\"javascript:findRouteByRid(" + route.rid + ");\">"+route.rname+"</a></p>\n" +
+                                        "                                <p>网付价<span>&yen;<span>"+route.price+"</span>起</span>\n" +
+                                        "                                </p>\n" +
+                                        "                            </div>\n" +
+                                        "                        </li>";
+
+                            }
+                            //更新页面
+                            $(".xinxi #rightId").html(html);
+                        }
+                    },
+                    "json"
+            );
+
+        });
+
+
+        /*根据旅游项目的id查询旅游项目的详情*/
+        function findRouteByRid(rid) {
+            location.href="/travelTest/route_detail.html?rid="+rid;
+        }
+    </script>
+</head>
+<body>
+<!--引入头部-->
+<div id="header"></div>
+    <div class="page_one">
+        <div class="contant">
+            <div class="crumbs">
+                <img src="images/search.png" alt="">
+                <p>黑马旅行><span>搜索结果</span></p>
+            </div>
+            <div class="xinxi clearfix">
+                <div class="left">
+                    <div class="header" id="aaaa">
+                        <span>商品信息</span>
+                        <span class="jg">价格</span>
+                    </div>
+                    <ul id="leftId">
+
+                    </ul>
+                    <div class="page_num_inf">
+                        <i></i> 共
+                        <span>12</span>页<span>132</span>条
+                    </div>
+                    <div class="pageNum">
+                        <ul>
+                            <li><a href="">首页</a></li>
+                            <li class="threeword"><a href="#">上一页</a></li>
+                            <li class="curPage"><a href="#">1</a></li>
+                            <li><a href="#">2</a></li>
+                            <li><a href="#">3</a></li>
+                            <li><a href="#">4</a></li>
+                            <li><a href="#">5</a></li>
+                            <li><a href="#">6</a></li>
+                            <li><a href="#">7</a></li>
+                            <li><a href="#">8</a></li>
+                            <li><a href="#">9</a></li>
+                            <li><a href="#">10</a></li>
+                            <li class="threeword"><a href="javascript:;">下一页</a></li>
+                            <li class="threeword"><a href="javascript:;">末页</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!--TODO 浏览历史 -->
+                <div class="right">
+                    <div class="top">
+                        <div class="hot">HISTORY</div>
+                        <span>浏览记录</span>
+                    </div>
+                    <ul id="rightId">
+
+                    </ul>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+    <!--引入头部-->
+    <div id="footer"></div>
+    <!--导入布局js，共享header和footer-->
+    <script type="text/javascript" src="js/include.js"></script>
+</body>
+
+</html>
